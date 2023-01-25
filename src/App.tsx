@@ -8,7 +8,7 @@ import {
   MdStopScreenShare,
 } from "react-icons/md";
 import {useCallState} from "./hooks/useCallState";
-import {useRoom} from "@livekit/react-core";
+import {AudioRenderer, useRoom} from "@livekit/react-core";
 import {useEffect, useRef, useMemo} from "react";
 import {livekitConfig} from "./config/livekit";
 import {ParticipantVideoRenderer} from "./components/ParticipantVideoRenderer";
@@ -38,45 +38,72 @@ function App() {
 
   const sortedParticipants = useMemo(() => {
     return participants.reduce<{
-      local: Participant[];
+      local: Participant | null;
       remote: Participant[];
     }>(
       (accumulator, current) => {
         if (current.isLocal) {
-          accumulator.local.push(current);
+          accumulator.local = current;
         } else {
-          accumulator.remote.push(current);
+          // accumulator.remote.push(current);
+          //TODO remove this from testing
+          for (let i = 0; i < 2; i++) {
+            accumulator.remote.push(current);
+          }
         }
         return accumulator;
       },
-      {local: [], remote: []}
+      {local: null, remote: []}
     );
   }, [participants]);
 
   return (
-    <div className="w-screen h-screen p-4 bg-skype-dark text-skype-light flex flex-col gap-y-4 overflow-hidden">
-      <nav>{connectionState}</nav>
-      <main className="flex-1 flex gap-4">
-        {sortedParticipants.local[0] && (
-          <div className="h-full w-full relative bg-skype-dark-overlay flex-5">
+    <div className="w-screen h-screen p-4 bg-skype-dark text-skype-light flex flex-col gap-y-4">
+      <nav>
+        {connectionState}
+        {audioTracks.map((track, index) => {
+          return <AudioRenderer key={index} isLocal={false} track={track} />;
+        })}
+      </nav>
+      <main
+        className={twMerge(
+          "flex-1 gap-4 grid",
+          sortedParticipants.remote.length > 0 &&
+            "grid-rows-[2fr,1fr] lg:grid-rows-1 lg:grid-cols-[2fr,1fr]"
+        )}
+      >
+        {sortedParticipants.local && (
+          <div className="flex-1 relative bg-skype-dark-overlay w-full">
+            <p className="absolute top-0 left-0 p-2 bg-skype-dark-overlay opacity-75 z-10 text-sm">
+              {sortedParticipants.local.name || sortedParticipants.local.identity}
+            </p>
             <ParticipantVideoRenderer
-              participant={sortedParticipants.local[0]}
-              className={twMerge(
-                "absolute left-0 top-0 w-full h-full",
-                sortedParticipants.local[0].isSpeaking && "ring-4 ring-skype-green"
-              )}
+              participant={sortedParticipants.local}
+              className="absolute inset-0 w-full h-full object-cover"
             />
           </div>
         )}
         {sortedParticipants.remote.length > 0 && (
-          <div className="flex-1 flex flex-col gap-4">
-            {sortedParticipants.remote.map(participant => {
+          <div
+            className={twMerge(
+              "flex-1 grid grid-cols-1 gap-4 align-middle justify-center",
+              sortedParticipants.remote.length >= 6 && "sm:grid-cols-3 lg:grid-cols-2",
+              sortedParticipants.remote.length >= 4 && "grid-cols-2 md:grid-cols-3 lg:grid-cols-2",
+              sortedParticipants.remote.length >= 3 && "grid-cols-2 md:grid-cols-3 lg:grid-cols-2",
+              sortedParticipants.remote.length >= 2 && "grid-cols-2 lg:grid-cols-1"
+            )}
+          >
+            {sortedParticipants.remote.slice(0, 6).map(participant => {
               return (
-                <ParticipantVideoRenderer
-                  key={participant.sid}
-                  participant={participant}
-                  className="w-full object-contain"
-                />
+                <div key={participant.sid} className="relative bg-skype-dark-overlay">
+                  <p className="absolute top-0 left-0 p-2 bg-skype-dark-overlay opacity-75 z-10 text-sm">
+                    {participant.name || participant.identity}
+                  </p>
+                  <ParticipantVideoRenderer
+                    participant={participant}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </div>
               );
             })}
           </div>

@@ -17,12 +17,8 @@ export const ParticipantVideoRenderer = ({
     videoTrack = screenSharePublication.track;
   }
 
-  if (!videoTrack) {
-    return (
-      <div className="w-full h-full grid place-items-center">
-        {participant.name || participant.identity}
-      </div>
-    );
+  if (!videoTrack || videoTrack.isMuted) {
+    return null;
   }
 
   return (
@@ -32,7 +28,6 @@ export const ParticipantVideoRenderer = ({
       isLocal={isLocal}
       isMirrored={screenSharePublication?.track ? false : true}
       className={className}
-      objectFit="contain"
     />
   );
 };

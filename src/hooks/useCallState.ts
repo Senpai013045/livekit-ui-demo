@@ -14,6 +14,7 @@ type Action_Toggle = {
 
 const reducer = (state = initialCallState, action: Action_Toggle) => {
     let nextState = state;
+    const room = action.room;
     switch (action.toggle) {
         case "isMicOn":
             nextState = { ...state, isMicOn: !state.isMicOn };
@@ -38,10 +39,16 @@ const reducer = (state = initialCallState, action: Action_Toggle) => {
             nextState = state;
             break;
     }
-    const room = action.room;
-    room.localParticipant.setCameraEnabled(nextState.isCameraOn);
-    room.localParticipant.setMicrophoneEnabled(nextState.isMicOn);
-    room.localParticipant.setScreenShareEnabled(nextState.isScreenShareOn);
+    //update room state only if there is a change - this is an optimization
+    const passMethods: Record<keyof typeof initialCallState, (bool: boolean) => void> = {
+        isMicOn: room.localParticipant.setMicrophoneEnabled.bind(room.localParticipant),
+        isCameraOn: room.localParticipant.setCameraEnabled.bind(room.localParticipant),
+        isScreenShareOn: room.localParticipant.setScreenShareEnabled.bind(room.localParticipant),
+    }
+    if (nextState[action.toggle] !== state[action.toggle]) {
+        const methodToCall = passMethods[action.toggle];
+        methodToCall(nextState[action.toggle]);
+    }
     return nextState;
 };
 
