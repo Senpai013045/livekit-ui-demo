@@ -41,7 +41,10 @@ const reducer = (state = initialCallState, action: Action_Toggle) => {
     }
     //update room state only if there is a change - this is an optimization
     const passMethods: Record<keyof typeof initialCallState, (bool: boolean) => void> = {
-        isMicOn: room.localParticipant.setMicrophoneEnabled.bind(room.localParticipant),
+        isMicOn: (bl) => {
+            room.localParticipant.setMicrophoneEnabled.bind(room.localParticipant)(bl);
+            room.startAudio()
+        },
         isCameraOn: room.localParticipant.setCameraEnabled.bind(room.localParticipant),
         isScreenShareOn: room.localParticipant.setScreenShareEnabled.bind(room.localParticipant),
     }
