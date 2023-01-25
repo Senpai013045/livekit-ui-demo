@@ -46,10 +46,7 @@ function App() {
           accumulator.local = current;
         } else {
           // accumulator.remote.push(current);
-          //TODO remove this from testing
-          for (let i = 0; i < 2; i++) {
-            accumulator.remote.push(current);
-          }
+          accumulator.remote.push(current);
         }
         return accumulator;
       },
