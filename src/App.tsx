@@ -6,38 +6,37 @@ import {
   MdCallEnd,
   MdScreenShare,
   MdStopScreenShare,
+  MdFrontHand,
 } from "react-icons/md";
-import {useCallState} from "./hooks/useCallState";
+import {useLocalCallState} from "./hooks/useCallState";
 import {AudioRenderer, useRoom} from "@livekit/react-core";
-import {useEffect, useRef, useMemo} from "react";
+import {useEffect, useMemo, useCallback} from "react";
 import {livekitConfig} from "./config/livekit";
 import {ParticipantVideoRenderer} from "./components/ParticipantVideoRenderer";
 import {twMerge} from "tailwind-merge";
-import {useElementSize} from "./hooks/useElementSize";
-import {DataPacket_Kind, Participant, RoomEvent} from "livekit-client";
+import {Participant} from "livekit-client";
 import {ToastContainer, toast} from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import {useHandRaise, HandRaiseCallBack} from "./hooks/useHandRaise";
 
 const token = new URLSearchParams(window.location.search).get("token") || "";
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
-
-type RaiseHandObject = {
-  type: "raise-hand";
-  payload: {
-    isRaised: boolean;
-  };
-};
-
-const isRaiseHandObject = (obj: any): obj is RaiseHandObject => {
-  return typeof obj === "object" && obj.type === "raise-hand";
-};
-
 function App() {
-  const {connect, isConnecting, room, error, participants, audioTracks, connectionState} =
-    useRoom();
-  const {callState, toggle} = useCallState(room);
+  const {connect, room, participants, audioTracks, connectionState} = useRoom();
+  const {callState, toggle} = useLocalCallState(room);
+
+  const onRemoteHandRaise: HandRaiseCallBack = useCallback((data, participant) => {
+    if (!data.payload.isRaised) return;
+    toast(`${participant.identity || "Someone"} raised their hand`, {
+      theme: "dark",
+      autoClose: 3000,
+      hideProgressBar: true,
+      position: "bottom-right",
+    });
+  }, []);
+
+  const {raiseHand, rissenSids, lowerHand} = useHandRaise(room, onRemoteHandRaise);
+
   useEffect(() => {
     if (!token) return;
     connect(livekitConfig.host, token).catch(err => {
@@ -48,9 +47,6 @@ function App() {
       room?.disconnect();
     };
   }, [connect, room]);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const containerSize = useElementSize(containerRef);
 
   const sortedParticipants = useMemo(() => {
     return participants.reduce<{
@@ -70,34 +66,8 @@ function App() {
     );
   }, [participants]);
 
-  useEffect(() => {
-    room?.on(RoomEvent.DataReceived, (data, participant, kind) => {
-      if (!participant) return;
-      const text = decoder.decode(data);
-      const payload = JSON.parse(text);
-      if (isRaiseHandObject(payload)) {
-        toast(`${participant.name || "Someone"} raised their hand`, {
-          position: "bottom-right",
-          theme: "dark",
-          autoClose: 5000,
-        });
-      }
-    });
-  }, [room]);
-
-  const raiseHand = () => {
-    if (!room) return;
-    const data: RaiseHandObject = {
-      type: "raise-hand",
-      payload: {
-        isRaised: true,
-      },
-    };
-    room.localParticipant.publishData(encoder.encode(JSON.stringify(data)), DataPacket_Kind.LOSSY);
-  };
-
   return (
-    <div onClick={raiseHand}>
+    <div>
       <ToastContainer />
       <div className="w-screen h-screen p-4 bg-skype-dark text-skype-light flex flex-col gap-y-4">
         <nav>
@@ -150,8 +120,13 @@ function App() {
                       participant.isSpeaking && "ring-4 ring-skype-light"
                     )}
                   >
-                    <p className="absolute top-0 left-0 p-2 bg-skype-dark-overlay opacity-75 z-10 text-sm">
-                      {participant.name || participant.identity}
+                    <p className="absolute top-0 left-0 p-2 bg-skype-dark-overlay opacity-75 z-10 text-sm flex gap-x-4">
+                      <span>{participant.name || participant.identity}</span>
+                      {rissenSids.has(participant.sid) && (
+                        <figure>
+                          <MdFrontHand />
+                        </figure>
+                      )}
                     </p>
                     <ParticipantVideoRenderer
                       participant={participant}
@@ -186,6 +161,16 @@ function App() {
             ) : (
               <MdScreenShare />
             )}
+          </button>
+          <button
+            onClick={rissenSids.has(room?.localParticipant?.sid || "") ? lowerHand : raiseHand}
+          >
+            <MdFrontHand
+              className={twMerge(
+                "text-skype-red",
+                rissenSids.has(room?.localParticipant?.sid || "") && "text-skype-light"
+              )}
+            />
           </button>
         </footer>
       </div>
