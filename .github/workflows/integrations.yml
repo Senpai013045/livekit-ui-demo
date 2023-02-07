@@ -1,4 +1,4 @@
-#run `yarn format` and `yarn lint` on merge to master and deploy the dist folder to github pages
+#run `yarn format` and `yarn lint` on merge to master
 name: formatting and linting
 
 on:
@@ -6,10 +6,6 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
-
-permissions:
-  contents: write
-  pull-requests: write
 
 jobs:
   verify:
@@ -23,9 +19,3 @@ jobs:
       - run: yarn install
       - run: yarn format
       - run: yarn lint
-      - run: yarn build
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
