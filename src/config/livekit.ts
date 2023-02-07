@@ -1,3 +1,3 @@
 export const livekitConfig = {
-  host: "wss://demo-skype.livekit.cloud",
+  host: "http://3.109.160.162:7880",
 };

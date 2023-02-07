@@ -9,17 +9,19 @@
     "preview": "vite preview",
     "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx --fix src",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src",
-    "format:fix": "prettier --write --check src",
-    "format": "prettier -c src"
+    "format:fix": "prettier --write -c --config .prettierrc src",
+    "format": "prettier -c --config .prettierrc src"
   },
   "dependencies": {
     "@livekit/react-core": "^1.1.0",
+    "axios": "^1.3.2",
     "livekit-client": "^1.6.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.7.1",
     "react-toastify": "^9.1.1",
-    "tailwind-merge": "^1.8.1"
+    "tailwind-merge": "^1.8.1",
+    "zod": "^3.20.2"
   },
   "devDependencies": {
     "@types/react": "^18.0.26",
