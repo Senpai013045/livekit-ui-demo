@@ -4,11 +4,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        //skype UI
-        "skype-dark": "#1e1e1e",
-        "skype-dark-overlay": "#252526",
-        "skype-light": "#f3f2f1",
-        "skype-red": "#d13438",
+        "ui-primary": "#014EA2",
+        "ui-secondary": "#05028F",
+        "ui-light": "#FFFFFF",
+        "ui-dark": "#000000",
+        "ui-danger": "#F31816",
+        "ui-dark-gray": "#252525",
       },
     },
   },
