@@ -10,6 +10,7 @@ module.exports = {
         "ui-dark": "#000000",
         "ui-danger": "#F31816",
         "ui-dark-gray": "#252525",
+        "ui-light-gray": "#777",
       },
     },
   },
