@@ -1,16 +1,14 @@
-import {z} from "zod";
-import {fetcher} from "../lib/fetcher";
+import { z } from "zod";
+import { fetcher } from "../lib/fetcher";
 
 const GetTokenSchema = z.object({
-  user: z.string(),
-  room: z.string(),
-  token: z.string(),
+  "access token": z.string(),
 });
 
 export const getToken = async (user: string, room: string) => {
-  const response = await fetcher.post("/room", {user, room});
+  const response = await fetcher.post("/room", { user, room });
   const parsed = GetTokenSchema.parse(response.data);
-  return parsed.token;
+  return parsed["access token"];
 };
 
 const UpdateHandRaiseSchema = z.object({
