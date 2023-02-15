@@ -60,19 +60,20 @@ function App() {
 
   const sortedParticipants = useMemo(() => {
     return participants.reduce<{
-      local: Participant | null;
-      remote: Participant[];
+      focused: Participant | null;
+      nonfocused: Participant[];
     }>(
       (accumulator, current) => {
-        if (current.isLocal) {
-          accumulator.local = current;
-        } else {
-          // accumulator.remote.push(current);
-          accumulator.remote.push(current);
+        const name = current.name || current.identity;
+        if (name === "supervisor") {
+          return {...accumulator, focused: current};
         }
-        return accumulator;
+        return {...accumulator, nonfocused: [...accumulator.nonfocused, current]};
       },
-      {local: null, remote: []}
+      {
+        focused: participants.find(p => p.isLocal) || null,
+        nonfocused: [],
+      }
     );
   }, [participants]);
 
@@ -81,27 +82,36 @@ function App() {
   }, []);
 
   const canLocalPublish = Boolean(room?.localParticipant?.permissions?.canPublish);
+  const isSupervisor = Boolean(
+    room && (room.localParticipant.name || room.localParticipant.identity) === "supervisor"
+  );
 
   return (
     <div>
       {showParticipants && (
         //modal for list of participants
-        <div className="fixed inset-0 z-10 flex justify-end">
-          <div className="bg-skype-dark-overlay rounded-lg shadow-lg p-4 text-skype-light text-base translate-x--1/2">
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="bg-skype-dark-overlay rounded-lg shadow-lg p-4 text-skype-light text-base min-w-[300px]">
             <nav className="flex justify-end mb-4">
               {/* close modal */}
               <button onClick={() => setShowParticipants(false)}>&#10005;</button>
             </nav>
             <h2 className="text-lg font-bold mb-4 border-b border-skype-light">Participants</h2>
             <ul>
-              {sortedParticipants.local &&
-                [...sortedParticipants.remote, sortedParticipants.local].map(participant => {
+              {/* {room?.participants.map(participant => { */}
+              {room &&
+                Array.from(room.participants.values()).map(participant => {
                   return (
                     <li key={participant.sid} className="flex items-center gap-x-4">
                       <span>{participant.name || participant.identity}</span>
-                      <button>
+                      {/* <button>
                         <MdFrontHand className="text-skype-light" />
-                      </button>
+                      </button> */}
+                      {rissenSids.has(participant.sid) && (
+                        <button>
+                          <MdFrontHand className="text-skype-light" />
+                        </button>
+                      )}
                     </li>
                   );
                 })}
@@ -125,39 +135,40 @@ function App() {
           <main
             className={twMerge(
               "flex-1 gap-4 grid",
-              sortedParticipants.remote.length > 0 &&
-                "grid-rows-[2fr,1fr] lg:grid-rows-1 lg:grid-cols-[2fr,1fr]"
+              sortedParticipants.nonfocused.length > 0 &&
+                "grid-rows-[2fr,1fr] lg:grid-rows-1 lg:grid-cols-[2fr,1fr]",
+              !sortedParticipants.focused && "grid-cols-1 lg:grid-cols-1"
             )}
           >
-            {sortedParticipants.local && (
+            {sortedParticipants.focused && (
               <div
                 className={twMerge(
                   "flex-1 relative bg-skype-dark-overlay w-full",
-                  sortedParticipants.local.isSpeaking && "ring-4 ring-skype-light"
+                  sortedParticipants.focused.isSpeaking && "ring-4 ring-skype-light"
                 )}
               >
                 <p className="absolute top-0 left-0 p-2 bg-skype-dark-overlay opacity-75 z-10 text-sm">
-                  {sortedParticipants.local.name || sortedParticipants.local.identity}
+                  {sortedParticipants.focused.name || sortedParticipants.focused.identity}
                 </p>
                 <ParticipantVideoRenderer
-                  participant={sortedParticipants.local}
+                  participant={sortedParticipants.focused}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               </div>
             )}
-            {sortedParticipants.remote.length > 0 && (
+            {sortedParticipants.nonfocused.length > 0 && (
               <div
                 className={twMerge(
                   "flex-1 grid grid-cols-1 gap-4 align-middle justify-center",
-                  sortedParticipants.remote.length >= 6 && "sm:grid-cols-3 lg:grid-cols-2",
-                  sortedParticipants.remote.length >= 4 &&
+                  "grid-cols-2 md:grid-cols-3 lg:grid-cols-2",
+                  sortedParticipants.nonfocused.length >= 2 && "grid-cols-2 lg:grid-cols-1",
+                  sortedParticipants.nonfocused.length >= 3 &&
+                    sortedParticipants.nonfocused.length >= 4 &&
                     "grid-cols-2 md:grid-cols-3 lg:grid-cols-2",
-                  sortedParticipants.remote.length >= 3 &&
-                    "grid-cols-2 md:grid-cols-3 lg:grid-cols-2",
-                  sortedParticipants.remote.length >= 2 && "grid-cols-2 lg:grid-cols-1"
+                  sortedParticipants.nonfocused.length >= 6 && "sm:grid-cols-3 lg:grid-cols-2"
                 )}
               >
-                {sortedParticipants.remote.slice(0, 6).map(participant => {
+                {sortedParticipants.nonfocused.slice(0, 6).map(participant => {
                   return (
                     <div
                       key={participant.sid}
@@ -168,11 +179,7 @@ function App() {
                     >
                       <p className="absolute top-0 left-0 p-2 bg-skype-dark-overlay opacity-75 z-10 text-sm flex gap-x-4">
                         <span>{participant.name || participant.identity}</span>
-                        {rissenSids.has(participant.sid) && (
-                          <figure>
-                            <MdFrontHand />
-                          </figure>
-                        )}
+                        {rissenSids.has(participant.sid) && <MdFrontHand />}
                       </p>
                       <ParticipantVideoRenderer
                         participant={participant}
@@ -215,32 +222,40 @@ function App() {
             <button className="p-2 rounded-full bg-skype-red" onClick={() => room?.disconnect()}>
               <MdCallEnd />
             </button>
-            <button
-              disabled={!canLocalPublish}
-              className={twMerge("p-1", !canLocalPublish && "opacity-50 cursor-not-allowed")}
-              onClick={() => toggle("isScreenShareOn")}
-              title={
-                canLocalPublish
-                  ? "Toggle Screen Share"
-                  : "You don't have permission to publish screen share"
-              }
-            >
-              {!callState.isScreenShareOn ? (
-                <MdStopScreenShare className="text-skype-red" />
-              ) : (
-                <MdScreenShare />
-              )}
-            </button>
-            <button
-              onClick={rissenSids.has(room?.localParticipant?.sid || "") ? lowerHand : raiseHand}
-            >
-              <MdFrontHand
-                className={twMerge(
-                  "text-skype-red",
-                  rissenSids.has(room?.localParticipant?.sid || "") && "text-skype-light"
-                )}
-              />
-            </button>
+            {
+              //if only user is supervisor then
+              isSupervisor && (
+                <button
+                  disabled={!canLocalPublish}
+                  className={twMerge("p-1", !canLocalPublish && "opacity-50 cursor-not-allowed")}
+                  onClick={() => toggle("isScreenShareOn")}
+                  title={
+                    canLocalPublish
+                      ? "Toggle Screen Share"
+                      : "You don't have permission to publish screen share"
+                  }
+                >
+                  {!callState.isScreenShareOn ? (
+                    <MdStopScreenShare className="text-skype-red" />
+                  ) : (
+                    <MdScreenShare />
+                  )}
+                </button>
+              )
+            }
+            {isSupervisor && (
+              <button
+                onClick={rissenSids.has(room?.localParticipant?.sid || "") ? lowerHand : raiseHand}
+              >
+                <MdFrontHand
+                  className={twMerge(
+                    "text-skype-red",
+                    rissenSids.has(room?.localParticipant?.sid || "") && "text-skype-light"
+                  )}
+                />
+              </button>
+            )}
+
             {/* button for toggling participants */}
             <button onClick={() => setShowParticipants(prev => !prev)}>
               <MdPeople
