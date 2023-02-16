@@ -1,5 +1,5 @@
-import {Room} from "livekit-client";
-import {useReducer, useCallback} from "react";
+import { Room } from "livekit-client";
+import { useReducer, useCallback } from "react";
 
 const initialCallState = {
   isMicOn: false,
@@ -17,7 +17,7 @@ const reducer = (state = initialCallState, action: Action_Toggle) => {
   const room = action.room;
   switch (action.toggle) {
     case "isMicOn":
-      nextState = {...state, isMicOn: !state.isMicOn};
+      nextState = { ...state, isMicOn: !state.isMicOn };
       break;
     case "isCameraOn":
       //disable screen share if camera is on
@@ -61,10 +61,10 @@ export const useLocalCallState = (room?: Room) => {
   const toggle = useCallback(
     (toggle: keyof typeof initialCallState) => {
       if (!room) return;
-      dispatch({toggle, room});
+      dispatch({ toggle, room });
     },
     [room]
   );
 
-  return {callState, toggle};
+  return { callState, toggle };
 };

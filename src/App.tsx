@@ -15,6 +15,7 @@ const ROOM = "ramailo" as const;
 const App = () => {
   const {connect, participants, audioTracks} = useRoom();
   const [room, setRoom] = useState<Room>();
+  const [token, setToken] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,6 +32,7 @@ const App = () => {
               connectedRoom.localParticipant.setCameraEnabled(false);
               connectedRoom.localParticipant.setScreenShareEnabled(false);
               setRoom(connectedRoom);
+              setToken(receivedToken);
             })
             .catch(notifyErrorMessage);
         })
@@ -43,7 +45,7 @@ const App = () => {
   let mainContent = <LoginScreen onSubmit={handleLoginPageSubmit} />;
 
   if (room) {
-    mainContent = <CallScreen participants={participants} room={room} />;
+    mainContent = <CallScreen token={token} participants={participants} room={room} />;
   }
 
   return (

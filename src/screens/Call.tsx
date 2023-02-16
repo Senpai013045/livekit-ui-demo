@@ -1,5 +1,5 @@
 import {Participant, Room} from "livekit-client";
-import {useCallback, useMemo, useState} from "react";
+import {useCallback, useMemo, useState, useEffect} from "react";
 import {FocusedVideoRenderer} from "../components/FocuedVideoRenderer";
 import {ProfileChip} from "../components/ProfileChip";
 import {sortParticipants, SUPERVISOR} from "../utils/sorting";
@@ -8,10 +8,14 @@ import {useLocalCallState} from "../hooks/useCallState";
 import {MdOutlineBackHand} from "react-icons/md";
 import {HandRaiseCallBack, useHandRaise} from "../hooks/useHandRaise";
 import {toast} from "react-toastify";
+import {updatePermission} from "../services/room";
+import {notifyErrorMessage} from "../lib/handleError";
+import {ParticipantPermission} from "livekit-client/dist/src/proto/livekit_models";
 
 interface Props {
   participants: Participant[];
   room: Room;
+  token: string;
 }
 
 const Slash = () => {
@@ -22,14 +26,25 @@ const Slash = () => {
   );
 };
 
-export const CallScreen = ({participants, room}: Props) => {
+export const CallScreen = ({participants, room, token}: Props) => {
   const sortedParticipants = useMemo(() => sortParticipants(participants), [participants]);
   const {callState, toggle} = useLocalCallState(room);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
 
+  useEffect(() => {
+    const permissionChangedHandler = (permission: ParticipantPermission) => {
+      if (callState.isMicOn && !permission.canPublish) {
+        toggle("isMicOn");
+        const message = permission.canPublish ? "You can now speak" : "You have been muted";
+        toast.info(message);
+      }
+    };
+    room.localParticipant.on("participantPermissionsChanged", permissionChangedHandler);
+  }, [callState.isMicOn, room.localParticipant, toggle]);
+
   const notifyHandRaise: HandRaiseCallBack = useCallback((data, participant) => {
     if (!data.payload.isRaised) return;
-    toast(`${participant.name || participant.identity || "Someone"} raised their hand`, {
+    toast(`${participant.name || participant.identity || "Someone"} raised hand`, {
       theme: "dark",
       autoClose: 3000,
       hideProgressBar: true,
@@ -139,13 +154,14 @@ export const CallScreen = ({participants, room}: Props) => {
       )}
       {isParticipantsOpen && (
         //it is a bottom sheet
-        //backdrop
         <aside className="fixed inset-0 bg-ui-dark-gray bg-opacity-50 z-20 flex justify-end items-end">
           <div className="bg-ui-dark-gray text-ui-light p-8 rounded-l-3xl max-h-[50%] overflow-y-scroll scrollbar-hide">
-            {/* corss close */}
-            <nav className="flex justify-end items-center sticky top-0">
+            {/* cross close */}
+            <nav className="flex justify-between items-center sticky top-0">
+              <h3 className="font-semibold">Participants</h3>{" "}
               <button onClick={() => setIsParticipantsOpen(false)}>&#10005;</button>
             </nav>
+
             <ul className="mt-4">
               {sortedParticipants.map(participant => {
                 return (
@@ -158,9 +174,38 @@ export const CallScreen = ({participants, room}: Props) => {
                     )}
                     {isSuperVisor && rissenSids.has(participant.sid) && (
                       <button>
-                        <MdOutlineBackHand className="w-6 h-6" />
+                        <MdOutlineBackHand className="font-normal" />
                       </button>
                     )}
+                    {!(
+                      (participant.name || participant.identity) ===
+                      (room.localParticipant.name || room.localParticipant.identity)
+                    ) &&
+                      isSuperVisor && (
+                        <button
+                          title={
+                            participant.permissions?.canPublish
+                              ? "Revoke publishing permission"
+                              : "Provide publishing permission"
+                          }
+                          onClick={() => {
+                            updatePermission({
+                              premissionFor: participant.name || participant.identity,
+                              publish: !participant.permissions?.canPublish,
+                              roomId: room.name,
+                              supervisorToken: token,
+                            })
+                              .then(toast.info)
+                              .catch(notifyErrorMessage);
+                          }}
+                        >
+                          {participant.permissions?.canPublish ? (
+                            <img src="./mic-on-sm.svg" alt="mic" />
+                          ) : (
+                            <img src="./mic-off-sm.svg" alt="mic off" />
+                          )}
+                        </button>
+                      )}
                   </li>
                 );
               })}
