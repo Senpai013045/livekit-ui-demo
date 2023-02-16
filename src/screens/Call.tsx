@@ -30,16 +30,24 @@ export const CallScreen = ({participants, room, token}: Props) => {
   const sortedParticipants = useMemo(() => sortParticipants(participants), [participants]);
   const {callState, toggle} = useLocalCallState(room);
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [hasPublishingPermission, setHasPublishingPermission] = useState(false);
 
   useEffect(() => {
     const permissionChangedHandler = (permission: ParticipantPermission) => {
       if (callState.isMicOn && !permission.canPublish) {
         toggle("isMicOn");
-        const message = permission.canPublish ? "You can now speak" : "You have been muted";
-        toast.info(message);
       }
+      const message = permission.canPublish ? "You can now speak" : "You have been muted";
+      toast.info(message);
+      setHasPublishingPermission(permission.canPublish);
     };
-    room.localParticipant.on("participantPermissionsChanged", permissionChangedHandler);
+    room.localParticipant.addListener("participantPermissionsChanged", permissionChangedHandler);
+    return () => {
+      room.localParticipant.removeListener(
+        "participantPermissionsChanged",
+        permissionChangedHandler
+      );
+    };
   }, [callState.isMicOn, room.localParticipant, toggle]);
 
   const notifyHandRaise: HandRaiseCallBack = useCallback((data, participant) => {
@@ -55,10 +63,10 @@ export const CallScreen = ({participants, room, token}: Props) => {
   const {rissenSids, lowerHand, raiseHand} = useHandRaise(room, notifyHandRaise);
   const focusedParticipant = sortedParticipants[0];
   const otherParticipants = sortedParticipants.slice(1);
-  const canPublish = Boolean(room.localParticipant.permissions?.canPublish);
   const isSuperVisor = Boolean(
     (room.localParticipant.name || room.localParticipant.identity) === SUPERVISOR
   );
+  const canPublish = isSuperVisor || hasPublishingPermission;
 
   return (
     <main className="flex-1 flex flex-col">
