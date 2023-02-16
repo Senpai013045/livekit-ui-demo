@@ -1,6 +1,6 @@
 import { Participant } from "livekit-client";
 
-const SUPERVISOR = "supervisor" as const;
+export const SUPERVISOR = "supervisor" as const;
 
 export const sortParticipants = (participants: Participant[]) => {
     //if name or identity is supervisor, put them at the top
