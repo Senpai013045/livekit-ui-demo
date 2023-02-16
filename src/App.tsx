@@ -3,7 +3,7 @@ import {CallScreen} from "./screens/Call";
 import {LoginScreen} from "./screens/Login";
 import {getToken} from "./services/room";
 import {notifyErrorMessage} from "./lib/handleError";
-import {useRoom} from "@livekit/react-core";
+import {AudioRenderer, useRoom} from "@livekit/react-core";
 import {livekitConfig} from "./config/livekit";
 import {ToastContainer} from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -13,7 +13,7 @@ import {Room} from "livekit-client";
 const ROOM = "ramailo" as const;
 
 const App = () => {
-  const {connect, participants} = useRoom();
+  const {connect, participants, audioTracks} = useRoom();
   const [room, setRoom] = useState<Room>();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +50,11 @@ const App = () => {
     <div className="w-screen h-screen bg-gradient overflow-hidden flex flex-col">
       <ToastContainer />
       {isLoading && <PageLoader />}
+      <nav>
+        {audioTracks.map((track, index) => {
+          return <AudioRenderer key={index} isLocal={false} track={track} />;
+        })}
+      </nav>
       <div className="flex-1 flex flex-col">{mainContent}</div>
     </div>
   );
