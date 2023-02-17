@@ -26,7 +26,7 @@ export const useHandRaise = (room?: Room, callback?: HandRaiseCallBack) => {
           }
           return new Set(prev);
         });
-        callback && callback(payload, participant);
+        callback?.(payload, participant);
       }
     });
   }, [room, callback]);

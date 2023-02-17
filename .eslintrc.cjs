@@ -34,5 +34,6 @@ module.exports = {
       },
     ],
     "no-case-declarations": "off",
+    "no-debugger": "warn",
   },
 };
