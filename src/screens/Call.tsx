@@ -111,7 +111,7 @@ export const CallScreen = ({token}: Props) => {
         {/* modal chip */}
         <button
           onClick={() => setIsParticipantsOpen(true)}
-          className="absolute top-4 left-4 bg-ui-dark-gray text-ui-light flex items-center gap-x-2 px-2 py-1 rounded-lg"
+          className="absolute top-4 left-4 bg-ui-dark-gray text-ui-light flex items-center gap-x-2 px-2 py-1 rounded-lg z-20"
         >
           <img src="./group.svg" alt="group" className="w-4 h-4" />
           {sortedParticipants.length}
@@ -150,7 +150,7 @@ export const CallScreen = ({token}: Props) => {
               "flex justify-center items-center rounded-full w-12 h-12 bg-ui-dark-gray relative disabled:opacity-50"
             )}
             onClick={() => toggle("isMicOn")}
-            title={`You are ${canLocalPublish ? "Allowed" : "Not Allowed"} to publish`}
+            title={`You are ${canLocalPublish ? "allowed" : "Not allowed"} to publish`}
           >
             {!callState.isMicOn && <Slash />}
             <img src="./mic.svg" alt="mic" />
@@ -206,7 +206,7 @@ export const CallScreen = ({token}: Props) => {
       )}
       {isParticipantsOpen && (
         //it is a bottom sheet
-        <aside className="fixed inset-0 bg-ui-dark-gray bg-opacity-50 z-20 flex justify-end items-end">
+        <aside className="fixed inset-0 bg-ui-dark-gray bg-opacity-50 z-30 flex justify-end items-end">
           <div className="bg-ui-dark-gray text-ui-light p-8 rounded-l-3xl max-h-[50%] overflow-y-scroll scrollbar-hide">
             {/* cross close */}
             <nav className="flex justify-between items-center sticky top-0">
