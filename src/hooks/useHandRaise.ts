@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { DataPacket_Kind, Participant, Room, RoomEvent } from "livekit-client";
-import { decoder, encoder, isRaiseHandObject, RaiseHandObject } from "../utils/hand";
+import {useState, useEffect, useCallback} from "react";
+import {DataPacket_Kind, Participant, Room, RoomEvent} from "livekit-client";
+import {decoder, encoder, isRaiseHandObject, RaiseHandObject} from "../utils/hand";
 
 export type HandRaiseCallBack = (data: RaiseHandObject, participant: Participant) => void;
 

@@ -1,4 +1,3 @@
-import {Participant, Room} from "livekit-client";
 import {useCallback, useMemo, useState, useEffect} from "react";
 import {FocusedVideoRenderer} from "../components/FocuedVideoRenderer";
 import {ProfileChip} from "../components/ProfileChip";
@@ -10,11 +9,11 @@ import {HandRaiseCallBack, useHandRaise} from "../hooks/useHandRaise";
 import {toast} from "react-toastify";
 import {updatePermission} from "../services/room";
 import {notifyErrorMessage} from "../lib/handleError";
-import {ParticipantPermission} from "livekit-client/dist/src/proto/livekit_models";
+import {AudioRenderer, useRoom} from "@livekit/react-core";
+import {PageLoader} from "../components/PageLoader";
+import {livekitConfig} from "../config/livekit";
 
 interface Props {
-  participants: Participant[];
-  room: Room;
   token: string;
 }
 
@@ -26,29 +25,9 @@ const Slash = () => {
   );
 };
 
-export const CallScreen = ({participants, room, token}: Props) => {
-  const sortedParticipants = useMemo(() => sortParticipants(participants), [participants]);
-  const {callState, toggle} = useLocalCallState(room);
+export const CallScreen = ({token}: Props) => {
+  const {participants, audioTracks, connect, room} = useRoom();
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
-  const [hasPublishingPermission, setHasPublishingPermission] = useState(false);
-
-  useEffect(() => {
-    const permissionChangedHandler = (permission: ParticipantPermission) => {
-      if (callState.isMicOn && !permission.canPublish) {
-        toggle("isMicOn");
-      }
-      const message = permission.canPublish ? "You can now speak" : "You have been muted";
-      toast.info(message);
-      setHasPublishingPermission(permission.canPublish);
-    };
-    room.localParticipant.addListener("participantPermissionsChanged", permissionChangedHandler);
-    return () => {
-      room.localParticipant.removeListener(
-        "participantPermissionsChanged",
-        permissionChangedHandler
-      );
-    };
-  }, [callState.isMicOn, room.localParticipant, toggle]);
 
   const notifyHandRaise: HandRaiseCallBack = useCallback((data, participant) => {
     if (!data.payload.isRaised) return;
@@ -57,19 +36,76 @@ export const CallScreen = ({participants, room, token}: Props) => {
       autoClose: 3000,
       hideProgressBar: true,
       position: "bottom-right",
+      closeOnClick: true,
     });
   }, []);
 
   const {rissenSids, lowerHand, raiseHand} = useHandRaise(room, notifyHandRaise);
+  const [canLocalPublish, setCanLocalPublish] = useState(false);
+
+  useEffect(() => {
+    if (!token) return;
+    connect(livekitConfig.host, token)
+      .then(connectedRoom => {
+        if (!connectedRoom) return;
+        let name = connectedRoom.localParticipant.identity;
+        if (connectedRoom.localParticipant.name) {
+          name = connectedRoom.localParticipant.name;
+        }
+        if (name === SUPERVISOR) {
+          setCanLocalPublish(true);
+        }
+      })
+      .catch(notifyErrorMessage);
+  }, [connect, token]);
+
+  const sortedParticipants = useMemo(() => sortParticipants(participants), [participants]);
+  const {callState, toggle} = useLocalCallState(room);
+  const [_changeWhenClicked, setChangeWhenClicked] = useState(false);
+
+  const triggerParticipantRerender = useCallback(() => {
+    setChangeWhenClicked(prev => !prev);
+  }, []);
+
+  useEffect(() => {
+    if (!room) return;
+    setCanLocalPublish(Boolean(room.localParticipant.permissions?.canPublish));
+    const permissionChangedHandler = () => {
+      lowerHand();
+      const permission = room.localParticipant.permissions;
+      if (!permission) return;
+      if (callState.isMicOn && !permission.canPublish) {
+        toggle("isMicOn");
+      }
+      const message = permission.canPublish ? "You can now speak" : "You have been muted";
+      toast.info(message);
+      setCanLocalPublish(permission.canPublish);
+    };
+    room.localParticipant.addListener("participantPermissionsChanged", permissionChangedHandler);
+    return () => {
+      room.localParticipant.removeListener(
+        "participantPermissionsChanged",
+        permissionChangedHandler
+      );
+    };
+  }, [callState.isMicOn, lowerHand, room, toggle]);
+
   const focusedParticipant = sortedParticipants[0];
   const otherParticipants = sortedParticipants.slice(1);
+
+  if (!room) return <PageLoader />;
+
   const isSuperVisor = Boolean(
     (room.localParticipant.name || room.localParticipant.identity) === SUPERVISOR
   );
-  const canPublish = isSuperVisor || hasPublishingPermission;
 
   return (
     <main className="flex-1 flex flex-col">
+      <nav>
+        {audioTracks.map((track, index) => {
+          return <AudioRenderer key={index} isLocal={false} track={track} />;
+        })}
+      </nav>
       <div className="flex-1 bg-ui-dark-gray relative">
         {/* modal chip */}
         <button
@@ -79,10 +115,13 @@ export const CallScreen = ({participants, room, token}: Props) => {
           <img src="./group.svg" alt="group" className="w-4 h-4" />
           {sortedParticipants.length}
         </button>
-        <FocusedVideoRenderer
-          participant={focusedParticipant}
-          className="absolute top-0 left-0 w-full h-full"
-        />
+        {focusedParticipant && (
+          <FocusedVideoRenderer
+            participant={focusedParticipant}
+            className="absolute top-0 left-0 w-full h-full"
+          />
+        )}
+
         {/* controls section */}
         <div className="absolute w-full bottom-9 z-10 text-ui-light flex justify-center gap-x-4 items-center">
           {/* hand raise */}
@@ -105,13 +144,12 @@ export const CallScreen = ({participants, room, token}: Props) => {
           )}
           {/* mic */}
           <button
-            disabled={!canPublish}
+            disabled={!canLocalPublish}
             className={twMerge(
-              "flex justify-center items-center rounded-full w-12 h-12 bg-ui-dark-gray relative",
-              !canPublish && "opacity-50"
+              "flex justify-center items-center rounded-full w-12 h-12 bg-ui-dark-gray relative disabled:opacity-50"
             )}
             onClick={() => toggle("isMicOn")}
-            title={!canPublish ? "You are not allowed to publish audio" : undefined}
+            title={`You are ${canLocalPublish ? "Allowed" : "Not Allowed"} to publish`}
           >
             {!callState.isMicOn && <Slash />}
             <img src="./mic.svg" alt="mic" />
@@ -170,8 +208,9 @@ export const CallScreen = ({participants, room, token}: Props) => {
               <button onClick={() => setIsParticipantsOpen(false)}>&#10005;</button>
             </nav>
 
-            <ul className="mt-4">
+            <ul className="mt-4" key={String(_changeWhenClicked)}>
               {sortedParticipants.map(participant => {
+                const canParticipantPublish = Boolean(participant.permissions?.canPublish);
                 return (
                   <li key={participant.sid} className="flex items-center gap-x-4 mb-4">
                     <ProfileChip participant={participant} />
@@ -192,22 +231,29 @@ export const CallScreen = ({participants, room, token}: Props) => {
                       isSuperVisor && (
                         <button
                           title={
-                            participant.permissions?.canPublish
+                            canParticipantPublish
                               ? "Revoke publishing permission"
                               : "Provide publishing permission"
                           }
                           onClick={() => {
                             updatePermission({
                               premissionFor: participant.name || participant.identity,
-                              publish: !participant.permissions?.canPublish,
+                              publish: !canParticipantPublish,
                               roomId: room.name,
                               supervisorToken: token,
                             })
-                              .then(toast.info)
-                              .catch(notifyErrorMessage);
+                              .then(message => {
+                                toast.info(message, {
+                                  autoClose: 1000,
+                                });
+                              })
+                              .catch(notifyErrorMessage)
+                              .finally(() => {
+                                triggerParticipantRerender();
+                              });
                           }}
                         >
-                          {participant.permissions?.canPublish ? (
+                          {canParticipantPublish ? (
                             <img src="./mic-on-sm.svg" alt="mic" />
                           ) : (
                             <img src="./mic-off-sm.svg" alt="mic off" />
