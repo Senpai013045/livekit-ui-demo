@@ -101,10 +101,11 @@ export const CallScreen = ({token}: Props) => {
 
   return (
     <main className="flex-1 flex flex-col">
-      <nav>
+      <nav className="bg-ui-dark">
         {audioTracks.map((track, index) => {
           return <AudioRenderer key={index} isLocal={false} track={track} />;
         })}
+        <h1 className="text-ui-light capitalize text-center py-2 font-bold">{room.name}</h1>
       </nav>
       <div className="flex-1 bg-ui-dark-gray relative">
         {/* modal chip */}
@@ -192,10 +193,10 @@ export const CallScreen = ({token}: Props) => {
       </div>
       {otherParticipants.length > 0 && (
         <footer className="bg-ui-dark-gray">
-          <div className="max-w-[90%] mx-auto pt-4 overflow-x-scroll flex items-center justify-start gap-x-4 scrollbar-hide">
+          <div className="max-w-[90%] mx-auto py-4 overflow-x-scroll flex items-center justify-start gap-x-4 scrollbar-hide">
             {otherParticipants.map(participant => {
               return (
-                <div key={participant.sid}>
+                <div key={participant.sid} className="flex items-center">
                   <ProfileChip participant={participant} />;
                 </div>
               );
