@@ -180,7 +180,12 @@ export const CallScreen = ({token}: Props) => {
             </button>
           )}
           {/* end call */}
-          <button className="flex justify-center items-center rounded-full w-12 h-12 bg-ui-danger">
+          <button
+            className="flex justify-center items-center rounded-full w-12 h-12 bg-ui-danger"
+            onClick={() => {
+              window.location.reload();
+            }}
+          >
             <img src="./call-end.svg" alt="end call" />
           </button>
         </div>

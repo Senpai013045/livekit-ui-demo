@@ -9,8 +9,8 @@
     "preview": "vite preview",
     "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx --fix src",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src",
-    "format:fix": "prettier --write -c --config .prettierrc src",
-    "format": "prettier -c --config .prettierrc src"
+    "format:fix": "prettier --check --write --config .prettierrc src",
+    "format": "prettier --check --config .prettierrc src"
   },
   "dependencies": {
     "@livekit/react-core": "^1.1.0",
