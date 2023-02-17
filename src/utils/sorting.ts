@@ -8,8 +8,8 @@ export const sortParticipants = (participants: Participant[]) => {
   const sortedParticipants = participants.sort(a => {
     const aName = (a.name || a.identity).toLowerCase();
     if (aName === SUPERVISOR) return -1;
-    if (a.isLocal) return -1;
-    if (a.isSpeaking) return -1;
+    if (a.isLocal) return 0;
+    if (a.isSpeaking) return 1;
     return 0;
   });
   return sortedParticipants;
