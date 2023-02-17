@@ -150,7 +150,7 @@ export const CallScreen = ({token}: Props) => {
               "flex justify-center items-center rounded-full w-12 h-12 bg-ui-dark-gray relative disabled:opacity-50"
             )}
             onClick={() => toggle("isMicOn")}
-            title={`You are ${canLocalPublish ? "Allowed" : "Not Allowed"} to publish`}
+            title={`You are ${canLocalPublish ? "allowed" : "Not allowed"} to publish`}
           >
             {!callState.isMicOn && <Slash />}
             <img src="./mic.svg" alt="mic" />
